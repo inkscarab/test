@@ -1,118 +1,175 @@
-var _img, img, flag, delta, A = 0,
-  Aref = 0,
-  deltaX = 0,
-  deltaY = 0;
-var _img = document.getElementById("img");
+<script type="text/javascript">
 
-var _c = document.createElement("canvas");
-var _ctx = _c.getContext("2d");
+ 
 
-var c = document.getElementById("c");
-var ctx = c.getContext("2d");
+//Мы используем классы, но ИЕ не умеет их выбирать. Компенсируем этот недостаток.
 
-var cw = c.width = _c.width = window.innerWidth,
-  cx = cw / 2;
-var ch = c.height = _c.height = window.innerHeight,
-  cy = ch / 2;
+if(document.getElementsByClassName) {
 
-var rad = Math.PI / 180;
-var frames = 0;
-var requestId = null;
-var m = {
-  x: cx,
-  y: cy
-}
-var side = 250;
-var h = side * Math.cos(30 * rad);
-drawPath(side, _ctx); //for _ctx.clip();
+   
 
-function Draw() {
-  _ctx.save(); // for _ctx.clip();
-  frames += .1;
-  flag = 0;
-  delta = 0; // for hexagons layout
-  if (Math.abs(Aref - A) > Math.PI) {
-    var dif = 2 * Math.PI - Math.abs(Aref - A);
+    getElementsByClass = function(classList, node) {  
+
+      return (node || document).getElementsByClassName(classList)
+
+    }
+
+   
+
   } else {
-    dif = Aref - A;
-  }
-  A += dif / 20;//lerp interpolation
-  A_cos = Math.cos(A);
-  A_sin = Math.sin(A);
-  //rotate the first canvas: _c	
-  _ctx.setTransform(A_cos, A_sin, -A_sin, A_cos, 0, 0);
-  //clipping the first canvas: _c
-  _ctx.clip();
-  _ctx.drawImage(_img, -512, -512);
-  // painting the 2-nd canvas: c
-  img = _c;
-  for (var y = 0; y < ch + side; y += h) {
-    flag++;
-    if (flag % 2 == 0) {
-      delta = 0;
-    } else {
-      delta = 1.5 * side;
+
+   
+
+    getElementsByClass = function(classList, node) {      
+
+      var node = node || document,
+
+      list = node.getElementsByTagName('*'),
+
+      length = list.length, 
+
+      classArray = classList.split(/\s+/),
+
+      classes = classArray.length,
+
+      result = [], i,j
+
+      for(i = 0; i < length; i++) {
+
+        for(j = 0; j < classes; j++) {
+
+          if(list[i].className.search('\\b' + classArray[j] + '\\b') != -1) {
+
+            result.push(list[i])
+
+            break
+
+          }
+
+        }
+
+      }
+
+     
+
+      return result
+
     }
-    for (var x = 0 + delta; x < cw + delta + side; x += 3 * side) {
-      placeHex(x, y, img)
+
+  }
+
+ 
+
+ 
+
+//Получаем координаты мыши
+
+function mousePageXY(e)
+
+{
+
+ var x = 0, y = 0;
+
+ 
+
+ if (!e) e = window.event;
+
+ 
+
+ if (e.pageX || e.pageY)
+
+ {
+
+  x = e.pageX;
+
+  y = e.pageY;
+
+ }
+
+ else if (e.clientX || e.clientY)
+
+ {
+
+  x = e.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft) - document.documentElement.clientLeft;
+
+  y = e.clientY + (document.documentElement.scrollTop || document.body.scrollTop) - document.documentElement.clientTop;
+
+ }
+
+ 
+
+ return {"x":x, "y":y};
+
+}
+
+ 
+
+ 
+
+window.onload = function() {
+
+ 
+
+var scope_cont = getElementsByClass('scope_container', document);
+
+ 
+
+//Калейдоскопов может быть несколько, учитываем это.
+
+for (i=0;i<scope_cont.length;i++)
+
+{
+
+  scope_cont[i].onmouseover = function() {
+
+      var sect = getElementsByClass('sv', this);
+
+      var curscope = this;
+
+      
+
+      this.onmousemove = function(e){
+
+        var mCur = mousePageXY(e); 
+
+          for (n=0;n<sect.length;n++)
+
+          {
+
+            //У четных секторов фон двигается в одну сторону
+
+            if (n%2) {
+
+              sect[n].style.backgroundPosition = mCur.x + 'px ' + mCur.y + 'px';
+
+            }
+
+            //У нечетных — в другую
+
+            else {
+
+              sect[n].style.backgroundPosition = mCur.x*(-1) + 'px ' + mCur.y + 'px'
+
+            }
+
+          }
+
+          
+
+        }
+
     }
-  }
-  _ctx.restore();
-  requestId = window.requestAnimationFrame(Draw);
-}
 
-function placeHex(x, y, img) {
-  //in order to eliminate ctx.save y ctx.restore() use ctx.setTransform
-  for (var i = 0; i < 6; i++) {
-    if (i % 2 == 0) {
-      ctx.scale(-1, 1); /*for the mirror*/
+    scope_cont[i].onmouseout = function() {
+
+      //Убираем за собой, чтоб не перегружать браузер
+
+      document.onmousemove = null;
+
     }
-    var a_cos = Math.cos(60 * i * rad);
-    var a_sin = Math.sin(60 * i * rad);
-    ctx.drawImage(img, 0, 0);
-    ctx.setTransform(a_cos, a_sin, -a_sin, a_cos, x, y);
-  }
+
 }
 
-function drawPath(side, ctx, fill) {
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(side, 0);
-  ctx.lineTo(side * Math.cos(60 * rad), side * Math.sin(60 * rad));
-  ctx.closePath();
 }
 
-function oMousePos(canvas, evt) {
-  var ClientRect = canvas.getBoundingClientRect();
-  return {
-    x: Math.round(evt.clientX - ClientRect.left),
-    y: Math.round(evt.clientY - ClientRect.top)
-  }
-}
-
-c.addEventListener("mousemove", function(e) {
-  m = oMousePos(c, e);
-  deltaX = (m.x - cx) * .01;
-  deltaY = (m.y - cy) * .01;
-  Aref = Math.atan2(deltaY, deltaX);
-}, false);
-
-function Init() {
-  if (requestId) {
-    window.cancelAnimationFrame(requestId);
-    requestId = null;
-  }
-  cw = c.width = _c.width = window.innerWidth, cx = cw / 2;
-  ch = c.height = _c.height = window.innerHeight, cy = ch / 2;
-  m = {
-    x: cx,
-    y: cy
-  }
-  drawPath(side, _ctx);
-  Draw();
-}
-
-setTimeout(function() {
-  Init();
-  window.addEventListener('resize', Init, false);
-}, 15);
+</script>
