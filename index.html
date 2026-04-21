@@ -4,61 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>калейдоскоп</title>
-    <style>
-        body { 
-            margin: 0; 
-            height: 100vh;
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            background: #050505; /* Почти черный для глубины */
-        }
+   <style>
+    body { 
+        margin: 0; 
+        height: 100vh;
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        background: #050505;
+    }
 
-        #kaleidoscope-container {
-            position: relative;
-            width: 75vmin; 
-            height: 75vmin;
-            
-            /* Золотистый градиент для рамки */
-            background: linear-gradient(45deg, 
-                #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
-            
-            /* Форма восьмигранника для внешней рамки */
-            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-            
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            
-            /* Легкое свечение вокруг */
-            box-shadow: 0 0 40px rgba(191, 149, 63, 0.3);
-        }
+    /* Общий контейнер */
+    .wrapper {
+        position: relative;
+        width: 75vmin; 
+        height: 75vmin;
+    }
 
-        /* Внутренняя часть, которая "прорезает" рамку */
-        #kaleidoscope-container::after {
-            content: '';
-            position: absolute;
-            /* Толщина рамки (сейчас 4px) */
-            inset: 15px; 
-            background: #000;
-            clip-path: inherit;
-            z-index: 0;
-        }
+    /* Слой с калейдоскопом (снизу) */
+    #kaleidoscope-container {
+        position: absolute;
+        inset: 0;
+        clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+        overflow: hidden;
+    }
 
-        canvas { 
-            display: block; 
-            width: 100%; 
-            height: 100%; 
-            z-index: 1; /* Чтобы калейдоскоп был поверх черного фона, но под рамкой */
-            clip-path: inherit;
-        }
+    /* Слой с рамкой (сверху) */
+    .gold-frame {
+        position: absolute;
+        inset: 0;
+        pointer-events: none; /* Пропускает клики сквозь себя к калейдоскопу */
+        /* Рисуем только контур восьмигранника */
+        background: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+        
+        /* Магия маски: рисует фон только там, где рамка */
+        -webkit-mask: 
+            linear-gradient(#fff 0 0) content-box, 
+            linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        
+        padding: 6px; /* ТОЛЩИНА РАМКИ */
+        clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+    }
 
-    </style>
-</head>
+    canvas { display: block; width: 100%; height: 100%; }
+</style>
+
 <body>
-
-    <div id="kaleidoscope-container">
-        <canvas id="canvas"></canvas>
+    <div class="wrapper">
+        <div id="kaleidoscope-container">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="gold-frame"></div> <!-- Рамка теперь здесь, над калейдоскопом -->
     </div>
 
 <script>
