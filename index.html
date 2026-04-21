@@ -3,14 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Двойной Калейдоскоп</title>
+    <title>Живой Калейдоскоп</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; }
-        canvas { display: block; }
+        body { 
+            margin: 0; 
+            height: 100vh;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: #050505; /* Почти черный для глубины */
+        }
+
+        #kaleidoscope-container {
+            position: relative;
+            width: 75vmin; 
+            height: 75vmin;
+            /* Форма восьмигранника */
+            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
+
+    <div id="kaleidoscope-container">
+        <canvas id="canvas"></canvas>
+    </div>
 
 <script>
 const canvas = document.getElementById('canvas');
@@ -18,8 +39,8 @@ const ctx = canvas.getContext('2d');
 
 const img1 = new Image();
 const img2 = new Image();
-img1.src = 'photo1.jpg'; // Первое фото
-img2.src = 'photo2.jpg'; // Второе фото
+img1.src = 'photo1.jpg'; 
+img2.src = 'photo2.jpg';
 
 let loaded = 0;
 [img1, img2].forEach(img => img.onload = () => {
@@ -27,42 +48,65 @@ let loaded = 0;
     if(loaded === 2) { resize(); draw(); }
 });
 
-let width, height, radius;
+let size, radius;
 const slices = 12; 
+let time = 0;
+
+// Координаты
+let mouseX = 0, mouseY = 0;
+let targetX = 0, targetY = 0;
+let isMoving = false;
 
 function resize() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-    radius = Math.sqrt(width**2 + height**2) / 1.5;
+    size = canvas.width = canvas.height = canvas.offsetWidth;
+    radius = size / 0.7;
+    // Начальная точка в центре
+    targetX = mouseX = size / 2;
+    targetY = mouseY = size / 2;
 }
 
 window.addEventListener('resize', resize);
 
-let mouseX = 0, mouseY = 0;
-window.addEventListener('mousemove', e => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-});
-// Поддержка касаний для телефонов
-window.addEventListener('touchmove', e => {
-    mouseX = e.touches[0].clientX;
-    mouseY = e.touches[0].clientY;
-});
+const updateMouse = (x, y) => {
+    const rect = canvas.getBoundingClientRect();
+    targetX = x - rect.left;
+    targetY = y - rect.top;
+    isMoving = true;
+    // Через 3 секунды бездействия включается автопилот
+    clearTimeout(window.mouseTimeout);
+    window.mouseTimeout = setTimeout(() => isMoving = false, 3000);
+};
+
+window.addEventListener('mousemove', e => updateMouse(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => updateMouse(e.touches[0].clientX, e.touches[0].clientY));
 
 function draw() {
+    time += 0.005; // Скорость авто-вращения
+
+    // Плавное следование за мышкой (инерция)
+    mouseX += (targetX - mouseX) * 0.05;
+    mouseY += (targetY - mouseY) * 0.05;
+
+    // Расчет автоматического смещения
+    const autoX = size/2 + Math.sin(time) * (size/3);
+    const autoY = size/2 + Math.cos(time * 0.8) * (size/3);
+
+    // Смешиваем координаты мыши и автопилота
+    const finalX = isMoving ? mouseX : autoX;
+    const finalY = isMoving ? mouseY : autoY;
+
     ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, size, size);
     
     const step = (Math.PI * 2) / slices;
-    const cx = width / 2;
-    const cy = height / 2;
+    const cx = size / 2;
+    const cy = size / 2;
 
     for (let i = 0; i < slices; i++) {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(i * step);
 
-        // Маска-треугольник
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(radius, -step * radius / 2);
@@ -70,20 +114,14 @@ function draw() {
         ctx.closePath();
         ctx.clip();
 
-        // Чередуем фото: четные — первое, нечетные — второе
         const currentImg = (i % 2 === 0) ? img1 : img2;
-        
-        // Отражаем каждый второй сегмент, чтобы узоры стыковались
-        if (i % 2 === 1) {
-            ctx.scale(1, -1);
-        }
+        if (i % 2 === 1) ctx.scale(1, -1);
 
-        // Отрисовка фото
-        const scale = 2; 
+        const scale = 1.4; 
         ctx.drawImage(
             currentImg,
-            (mouseX / width) * currentImg.width - 200, 
-            (mouseY / height) * currentImg.height - 200,
+            (finalX / size) * currentImg.width - (currentImg.width/scale/2), 
+            (finalY / size) * currentImg.height - (currentImg.height/scale/2),
             currentImg.width / scale, currentImg.height / scale,
             0, -radius, radius * 2, radius * 2
         );
